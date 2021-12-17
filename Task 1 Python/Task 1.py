@@ -1,11 +1,11 @@
 import os
 import psutil
 import json
-import xml.etree.ElementTree as ET
+from dicttoxml import dicttoxml
 from zipfile import ZipFile
+import xml.etree.ElementTree as ET
 
 def get_disk_info():
-    disk_info = []
     for part in psutil.disk_partitions(all=False):
         if os.name == 'nt':
             if 'cdrom' in part.opts or part.fstype == '':
@@ -19,14 +19,14 @@ def get_disk_info():
         print(f"    Total: {int(hdd.total) / (2 ** 30)} GiB")
         print(f"    Free: {int(hdd.free) / (2 ** 30)} GiB")
         print("====================================\n")
-    return disk_info
 
 def file():
+    print("File:")
     text = input("Please enter smth: ")
     with open("text.txt", 'w') as f:
         f.write(text + '\n')
     with open("text.txt", 'r') as f:
-        print(f.read())
+        print("File data: " + f.read())
 
 def jsonfile():
     my_dog = {
@@ -35,18 +35,27 @@ def jsonfile():
     }
     with open("dog.json", "w") as f:
         json.dump(my_dog, f)
+    print("JSON:")
     with open("dog.json", "r") as f:
         imported_dog = json.load(f)
     print(imported_dog)
 
 def xmlfile():
-    name = "file.xml"
-    root = ET.Element("data")
+    root = ET.Element("root")
+    doc = ET.SubElement(root, "doc")
+
+    ET.SubElement(doc, "name").text = "Snoopy"
+    ET.SubElement(doc, "age").text = "5"
+
     tree = ET.ElementTree(root)
-    tree.write("%s" %(name))
-    with open("%s" % (name), "r") as file:
-        tree = ET.fromstring(file.read())
-    print(ET.tostring(tree))
+    tree.write("file.xml")
+
+    tree = ET.parse('file.xml')
+    root = tree.getroot()
+    print("XML:")
+    for elem in root:
+       for subelem in elem:
+          print(subelem.tag, " : ", subelem.text)
 
 def zip():
     name = "filetozip.txt"
@@ -56,18 +65,11 @@ def zip():
         f.close()
     with ZipFile(name_zip, "w") as zip:
             zip.write(name)
-    z = ZipFile(name_zip, 'r')
-    z.extractall()
-    z.close()
-    file = open(name)
-    print("File data: " + file.read())
-    file.close()
-    print("File info:")
-    print("     Size: " + str(os.path.getsize(name)) + " Bytes")
-    print("     Updated: " + str(os.path.getmtime(name)))
-    print("     Created: " + str(os.path.getctime(name)))
-    os.remove(name)
-    os.remove(name_zip)
+    with ZipFile(name_zip, 'r') as z:
+        z.extractall('extracted')
+    print("ZIP:")
+    with open('extracted/'+name) as f:
+        print("File data: " + f.read())
 
 if __name__ == '__main__':
     get_disk_info()

@@ -1,0 +1,8 @@
+admin
+vasya
+jora
+user
+1
+2
+1337
+smithy

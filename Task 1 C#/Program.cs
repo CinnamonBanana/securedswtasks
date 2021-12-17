@@ -11,7 +11,7 @@ namespace HardDiskInfo
 {
     class Program
     {
-        class Person
+        class Dog
         {
             public string Name { get; set; }
         }
@@ -42,8 +42,6 @@ namespace HardDiskInfo
             if (fileInf.Exists)
             {
                 fileInf.Delete();
-                // альтернатива с помощью класса File
-                // File.Delete(path);
             }
         }
 
@@ -57,13 +55,13 @@ namespace HardDiskInfo
 
             using (FileStream fs = new FileStream(path + ".json", FileMode.OpenOrCreate))
             {
-                Person tom = new Person() { Name = text };
-                await JsonSerializer.SerializeAsync<Person>(fs, tom);
+                Dog snoopy = new Dog() { Name = text };
+                await JsonSerializer.SerializeAsync<Dog>(fs, snoopy);
             }
             using (FileStream fs = new FileStream(path + ".json", FileMode.OpenOrCreate))
             {
-                Person restoredPerson = await JsonSerializer.DeserializeAsync<Person>(fs);
-                Console.WriteLine($"JSON data : {restoredPerson.Name}");
+                Dog deserialisedDog = await JsonSerializer.DeserializeAsync<Dog>(fs);
+                Console.WriteLine($"JSON data : {deserialisedDog.Name}");
             }
             File.Delete(path + ".json");
         }
@@ -85,75 +83,86 @@ namespace HardDiskInfo
             var doc = new XmlDocument();
             doc.Load(path + ".xml");
             var root = doc.DocumentElement;
-            PrintItem(root);
+            ReadXML(root);
             File.Delete(path + ".xml");
         }
-
-        /// <param name="item"> XML Element. </param>
-        /// <param name="indent"> Indent count from string beginning. </param>
-        private static void PrintItem(XmlElement item, int indent = 0)
+        
+        private static void ReadXML(XmlElement item, int indent = 0)
         {
-            Console.Write($"{new string('\t', indent)}{item.LocalName} ");
-            foreach (XmlAttribute attr in item.Attributes)
+            if(item != null)
             {
-                Console.Write($"[{attr.InnerText}]");
-            }
-            foreach (var child in item.ChildNodes)
-            {
-                if (child is XmlElement node)
+                Console.Write($"{new string('\t', indent)}{item.LocalName} ");
+                foreach (XmlAttribute attr in item.Attributes)
                 {
-
-                    Console.WriteLine();
-                    PrintItem(node, indent + 1);
+                    Console.Write($"[{attr.InnerText}]");
                 }
-
-                if (child is XmlText text)
+                foreach (var child in item.ChildNodes)
                 {
-                    Console.Write($"- {text.InnerText}");
+                    if (child is XmlElement node)
+                    {
+
+                        Console.WriteLine();
+                        ReadXML(node, indent + 1);
+                    }
+
+                    if (child is XmlText text)
+                    {
+                        Console.Write($"- {text.InnerText}");
+                    }
                 }
             }
         }
 
         public static void zip()
         {
-            const string archivePath = @"C:\archive.zip";
+            const string archivePath = @"C:\TEST\archive.zip";
             using (ZipArchive zipArchive = ZipFile.Open(archivePath, ZipArchiveMode.Create))
             {
-                const string pathFileToAdd = @"C:\test.txt";
+                const string pathFileToAdd = @"C:\TEST\test.txt";
                 const string nameFileToAdd = "test.txt";
                 zipArchive.CreateEntryFromFile(pathFileToAdd, nameFileToAdd);
             }
             using (ZipArchive zipArchive = ZipFile.OpenRead(archivePath))
             {
                 const string nameExtractFile = "test.txt";
-                const string pathExtractFile = @"C:\unarchivedTest.txt";
+                const string pathExtractFile = @"C:\TEST\unarchivedTest.txt";
                 zipArchive.Entries.FirstOrDefault(x => x.Name == nameExtractFile)?.
                     ExtractToFile(pathExtractFile);
+                using (FileStream fstream = File.OpenRead(pathExtractFile))
+                {
+                    byte[] array = new byte[fstream.Length];
+                    fstream.Read(array, 0, array.Length);
+                    string textFromFile = System.Text.Encoding.Default.GetString(array);
+                    Console.WriteLine($"\n\nFile data: {textFromFile}");
+                }
             }
         }
-
-        static void Main(string[] args)
+        
+        public static void drives()
         {
             DriveInfo[] drives = DriveInfo.GetDrives();
             foreach (DriveInfo drive in drives)
             {
                 Console.WriteLine($"Name: {drive.Name}");
                 Console.WriteLine($"Type: {drive.DriveType}");
-                Console.WriteLine($"File System: {drive.DriveFormat}");
-                //Console.WriteLine($"Type: {drive}");
                 if (drive.IsReady)
                 {
+                    Console.WriteLine($"File System: {drive.DriveFormat}");
                     Console.WriteLine($"Size: {drive.TotalSize}");
                     Console.WriteLine($"Free space: {drive.TotalFreeSpace}");
                     Console.WriteLine($"Label: {drive.VolumeLabel}");
                 }
                 Console.WriteLine("========================\n");
             }
-
-            file(); // Запись в файл информации и последующее чтение
-            jsonfile(); // Создание, запись и чтение информации и удаление json файла
-            xmlfile(); // Создание и запись в xml файл
-            zip();
+        }
+        
+        static void Main(string[] args)
+        {
+            drives(); // Информация о разделах ЖД
+            file(); // Работа с файлом
+            jsonfile(); // Работа с JSON-файлом
+            xmlfile(); // Работа с XML-файлом
+            zip(); // Архивирование и разархивирование
         }
 
 

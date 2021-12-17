@@ -1,6 +1,7 @@
 from hashlib import sha256
 import time
 import threading
+import multiprocessing
 
 class Bruteforcer:
     def __init__(self):
@@ -34,11 +35,13 @@ class Bruteforcer:
         thrdchrs = list(
                 self.func_chunks_generators(
                     self.alph, int(26 / int(self.threadsnum))))
-        timechk = threading.Thread(target=self.get_time)
+        print(thrdchrs)
         for thrd in thrdchrs:
-            x = threading.Thread(target=self.crack, args=(thrd[0], thrd[-1],))
+            x = multiprocessing.Process(target=self.crack, args=(thrd[0], thrd[-1],))
             x.start()
-        timechk.start()
+        #timechk.start()
+
+
 
     def crack(self, start='a', end='z'):
         for i in range(ord(start), ord(end)+1):
@@ -59,7 +62,6 @@ class Bruteforcer:
                 print(hash, " : ", word)
                 self.hashes.remove(wordencoded)
                 return
-
 
 if __name__ == '__main__':
     thrdin = input("Enter number of threads(default = 1, max = 26): ")
