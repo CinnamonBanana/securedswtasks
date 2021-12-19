@@ -4,20 +4,20 @@
     <title>Login</title>
 </head>
 <body>
-    <form method="POST">
+    <form method="GET">
     Логин <input name="username" type="text" required><br>
     Пароль <input name="password" type="password" required><br>
-    <input name="Login" type="submit" value="Войти">
+    <input name="Login" type="submit" value="Login">
     </form>
     
     <?php
     $maxattempts = 5;
+    $timeout = 5;
     function dbcon()
     {
         try {
-            $dsn = "pgsql:host=127.0.0.1;port=5432;dbname=mydb;";
-            $pdo = new PDO($dsn, 'postgres', '', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
-            return $pdo;
+            require_once ('dbCredentials.php');
+            return new PDO($strHostName, $strUserName, $strPassword, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
         } catch (PDOException $e) {
             die($e->getMessage());
         } 
@@ -33,12 +33,12 @@
         $sth->execute();
     }
 
-    if(isset($_POST['Login']))
+    if(isset($_GET['Login']))
     {
 
         $pdo = dbcon();
-        $user = stripslashes($_POST[ 'username' ]);
-        $password = stripslashes($_POST[ 'password' ]);
+        $user = stripslashes($_GET[ 'username' ]);
+        $password = stripslashes($_GET[ 'password' ]);
 
         $sql = 'SELECT * FROM public.users WHERE username = :user LIMIT 1';
         $sth = $pdo->prepare($sql);
@@ -46,17 +46,11 @@
         $sth->execute();
         $field = $sth->fetch();
 
-        if($field['attempts']<$maxattempts && time()-$field['last_call']>3)
+        if($field['attempts']<$maxattempts && time()-$field['last_call']>3 && count($field))
         {
-            $sql = 'SELECT username, pwd FROM public.users WHERE username = :user and pwd = :pwd';
-            $sth = $pdo->prepare($sql);
-            $sth->bindParam(':user', $user, PDO::PARAM_STR );
             $pass = hash('sha256', $field['salt'].$password);
-            $sth->bindParam(':pwd', $pass, PDO::PARAM_STR );
-            $sth->execute();
-            $result= $sth->fetchAll();
 
-            if (count($result) == 1)
+            if ($pass == $field['pwd'])
             {
                 echo "<p>Welcome to the password protected area</p>";
                 setattempts($pdo, $user, 0);
@@ -67,12 +61,17 @@
                 setattempts($pdo, $user, $field['attempts']+1);
             }
         }
+        elseif(count($field) == 0)
+        {
+            echo "<p><br />Username and/or password incorrect.</p>";
+        }
         else
         {
             echo "<p>Слишком много попыток входа.</p>";
-            $remain = 60*5-(time()-$field['last_call']);
+            $remain = 60*$timeout-(time()-$field['last_call']);
             echo "<p>Осталось ".intval($remain/60)." минут ".($remain%60)." секунд.</p>";
-            if ($field['attempts']>$maxattempts && time()-$field['last_call']>10*60)
+            echo "<p>RAW: ".$remain."</p>";
+            if ($field['attempts']>=$maxattempts && $remain<=0)
             {
                 setattempts($pdo, $user, $field['attempts']-3);
             }
